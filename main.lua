@@ -1,35 +1,73 @@
 local Library = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Library:CreateWindow({
-   Name = "TEST HUB"
+   Name = "Cem Hub",
+   LoadingTitle = "Cem Hub",
+   LoadingSubtitle = "Clean Version"
 })
 
 local Tab = Window:CreateTab("Main")
 
+local player = game.Players.LocalPlayer
+
+-- SAFE CHARACTER
+local function getChar()
+   return player.Character or player.CharacterAdded:Wait()
+end
+
+local function getHumanoid()
+   local char = getChar()
+   return char:FindFirstChildOfClass("Humanoid")
+end
+
+-- =====================
+-- WALK SPEED
+-- =====================
 Tab:CreateInput({
    Name = "WalkSpeed",
    Callback = function(v)
-      print("WS:", v)
-   end
+      local hum = getHumanoid()
+      if hum then
+         hum.WalkSpeed = tonumber(v) or 16
+      end
+   end,
 })
 
+-- =====================
+-- JUMP POWER
+-- =====================
 Tab:CreateInput({
    Name = "JumpPower",
    Callback = function(v)
-      print("JP:", v)
-   end
+      local hum = getHumanoid()
+      if hum then
+         hum.UseJumpPower = true
+         hum.JumpPower = tonumber(v) or 50
+      end
+   end,
 })
+
+-- =====================
+-- NOCLIP
+-- =====================
+local noclip = false
 
 Tab:CreateToggle({
    Name = "NoClip",
    Callback = function(v)
-      print("NoClip:", v)
-   end
+      noclip = v
+   end,
 })
 
-Tab:CreateInput({
-   Name = "Fly Speed",
-   Callback = function(v)
-      print("FlySpeed:", v)
+game:GetService("RunService").Stepped:Connect(function()
+   if not noclip then return end
+
+   local char = player.Character
+   if not char then return end
+
+   for _, part in pairs(char:GetDescendants()) do
+      if part:IsA("BasePart") then
+         part.CanCollide = false
+      end
    end
-})
+end)
