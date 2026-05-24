@@ -1,31 +1,22 @@
-print("SCRIPT RUNNING")
 local Library = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Library:CreateWindow({
    Name = "Cem Hub",
    LoadingTitle = "Cem Hub",
-   LoadingSubtitle = "Stable Build"
+   LoadingSubtitle = "Safe Build"
 })
 
 local Tab = Window:CreateTab("Main")
 
 local player = game.Players.LocalPlayer
 
--- =========================
--- CHARACTER SAFE HANDLER
--- =========================
-local character
-local humanoid
-local hrp
-
-local function updateCharacter(char)
-   character = char
-   humanoid = char:WaitForChild("Humanoid")
-   hrp = char:WaitForChild("HumanoidRootPart")
+-- SAFE GET CHARACTER FUNCTION
+local function getChar()
+   local char = player.Character or player.CharacterAdded:Wait()
+   local hum = char:FindFirstChildOfClass("Humanoid")
+   local root = char:FindFirstChild("HumanoidRootPart")
+   return char, hum, root
 end
-
-updateCharacter(player.Character or player.CharacterAdded:Wait())
-player.CharacterAdded:Connect(updateCharacter)
 
 -- =========================
 -- WALK SPEED (SAFE)
@@ -33,10 +24,7 @@ player.CharacterAdded:Connect(updateCharacter)
 Tab:CreateInput({
    Name = "WalkSpeed",
    Callback = function(Value)
-      local char = player.Character
-      if not char then return end
-
-      local hum = char:FindFirstChildOfClass("Humanoid")
+      local char, hum = getChar()
       if hum then
          hum.WalkSpeed = tonumber(Value) or 16
       end
@@ -49,10 +37,7 @@ Tab:CreateInput({
 Tab:CreateInput({
    Name = "JumpPower",
    Callback = function(Value)
-      local char = player.Character
-      if not char then return end
-
-      local hum = char:FindFirstChildOfClass("Humanoid")
+      local char, hum = getChar()
       if hum then
          hum.UseJumpPower = true
          hum.JumpPower = tonumber(Value) or 50
@@ -61,23 +46,29 @@ Tab:CreateInput({
 })
 
 -- =========================
--- NOCLIP (STABLE)
+-- NOCLIP (SAFE LOOP)
 -- =========================
 local noclip = false
 
 Tab:CreateToggle({
    Name = "NoClip",
-   CurrentValue = false,
    Callback = function(Value)
       noclip = Value
    end,
 })
 
-game:GetService("RunService").Stepped:Connect(function()
-   if noclip and player.Character then
-      for _, v in pairs(player.Character:GetDescendants()) do
-         if v:IsA("BasePart") then
-            v.CanCollide = false
+task.spawn(function()
+   while true do
+      task.wait()
+
+      if noclip then
+         local char = player.Character
+         if char then
+            for _, v in pairs(char:GetDescendants()) do
+               if v:IsA("BasePart") then
+                  v.CanCollide = false
+               end
+            end
          end
       end
    end
@@ -87,18 +78,18 @@ end)
 -- FLY (SAFE + NO CRASH)
 -- =========================
 local flying = false
-local flySpeed = 50
-
-local bodyVel
-local bodyGyro
+local speed = 50
 
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
+local bodyVel
+local bodyGyro
+
 Tab:CreateInput({
    Name = "Fly Speed",
    Callback = function(Value)
-      flySpeed = tonumber(Value) or 50
+      speed = tonumber(Value) or 50
    end,
 })
 
@@ -107,21 +98,16 @@ Tab:CreateToggle({
    Callback = function(Value)
       flying = Value
 
+      local _, _, root = getChar()
+      if not root then return end
+
       if flying then
-         local char = player.Character
-         if not char then return end
-
-         local root = char:FindFirstChild("HumanoidRootPart")
-         if not root then return end
-
          bodyVel = Instance.new("BodyVelocity")
          bodyVel.MaxForce = Vector3.new(1e9,1e9,1e9)
-         bodyVel.Velocity = Vector3.zero
          bodyVel.Parent = root
 
          bodyGyro = Instance.new("BodyGyro")
          bodyGyro.MaxTorque = Vector3.new(1e9,1e9,1e9)
-         bodyGyro.CFrame = root.CFrame
          bodyGyro.Parent = root
       else
          if bodyVel then bodyVel:Destroy() end
@@ -133,10 +119,7 @@ Tab:CreateToggle({
 RunService.RenderStepped:Connect(function()
    if not flying then return end
 
-   local char = player.Character
-   if not char then return end
-
-   local root = char:FindFirstChild("HumanoidRootPart")
+   local _, _, root = getChar()
    if not root then return end
 
    local cam = workspace.CurrentCamera
@@ -150,7 +133,7 @@ RunService.RenderStepped:Connect(function()
    if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then move -= Vector3.new(0,1,0) end
 
    if bodyVel then
-      bodyVel.Velocity = move * flySpeed
+      bodyVel.Velocity = move * speed
    end
 
    if bodyGyro then
