@@ -3,21 +3,26 @@ local Library = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Library:CreateWindow({
    Name = "Cem Hub",
    LoadingTitle = "Cem Hub",
-   LoadingSubtitle = "Stable Version"
+   LoadingSubtitle = "Stable Build"
 })
 
 local Tab = Window:CreateTab("Main")
 
 local player = game.Players.LocalPlayer
 
--- SAFE CHARACTER FUNCTIONS
-local function getHumanoid()
+-- SAFE CHARACTER GETTER
+local function getChar()
    local char = player.Character or player.CharacterAdded:Wait()
+   return char
+end
+
+local function getHumanoid()
+   local char = getChar()
    return char:FindFirstChildOfClass("Humanoid")
 end
 
 local function getRoot()
-   local char = player.Character or player.CharacterAdded:Wait()
+   local char = getChar()
    return char:FindFirstChild("HumanoidRootPart")
 end
 
@@ -26,10 +31,10 @@ end
 -- =====================
 Tab:CreateInput({
    Name = "WalkSpeed",
-   Callback = function(Value)
+   Callback = function(v)
       local hum = getHumanoid()
       if hum then
-         hum.WalkSpeed = tonumber(Value) or 16
+         hum.WalkSpeed = tonumber(v) or 16
       end
    end,
 })
@@ -39,11 +44,11 @@ Tab:CreateInput({
 -- =====================
 Tab:CreateInput({
    Name = "JumpPower",
-   Callback = function(Value)
+   Callback = function(v)
       local hum = getHumanoid()
       if hum then
          hum.UseJumpPower = true
-         hum.JumpPower = tonumber(Value) or 50
+         hum.JumpPower = tonumber(v) or 50
       end
    end,
 })
@@ -55,26 +60,26 @@ local noclip = false
 
 Tab:CreateToggle({
    Name = "NoClip",
-   Callback = function(Value)
-      noclip = Value
+   Callback = function(v)
+      noclip = v
    end,
 })
 
 game:GetService("RunService").Stepped:Connect(function()
-   if noclip then
-      local char = player.Character
-      if char then
-         for _, v in pairs(char:GetDescendants()) do
-            if v:IsA("BasePart") then
-               v.CanCollide = false
-            end
-         end
+   if not noclip then return end
+
+   local char = player.Character
+   if not char then return end
+
+   for _, p in pairs(char:GetDescendants()) do
+      if p:IsA("BasePart") then
+         p.CanCollide = false
       end
    end
 end)
 
 -- =====================
--- FLY (FIXED VERSION)
+-- FLY (100% SAFE FIX)
 -- =====================
 local flying = false
 local flySpeed = 50
@@ -87,28 +92,27 @@ local bodyGyro
 
 Tab:CreateInput({
    Name = "Fly Speed",
-   Callback = function(Value)
-      flySpeed = tonumber(Value) or 50
+   Callback = function(v)
+      flySpeed = tonumber(v) or 50
    end,
 })
 
 Tab:CreateToggle({
    Name = "Fly",
-   Callback = function(Value)
-      flying = Value
+   Callback = function(v)
+      flying = v
 
-      local char = player.Character
-      if not char then return end
+      local root = getRoot()
+      local hum = getHumanoid()
 
-      local hum = char:FindFirstChildOfClass("Humanoid")
-      local root = char:FindFirstChild("HumanoidRootPart")
-      if not hum or not root then return end
+      if not root or not hum then return end
 
       if flying then
          hum.PlatformStand = true
 
          bodyVel = Instance.new("BodyVelocity")
          bodyVel.MaxForce = Vector3.new(1e9,1e9,1e9)
+         bodyVel.Velocity = Vector3.zero
          bodyVel.Parent = root
 
          bodyGyro = Instance.new("BodyGyro")
@@ -127,10 +131,7 @@ Tab:CreateToggle({
 RunService.RenderStepped:Connect(function()
    if not flying then return end
 
-   local char = player.Character
-   if not char then return end
-
-   local root = char:FindFirstChild("HumanoidRootPart")
+   local root = getRoot()
    if not root then return end
 
    local cam = workspace.CurrentCamera
