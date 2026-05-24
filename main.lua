@@ -4,58 +4,70 @@ local Window = Library:CreateWindow({
    Name = "Cem Hub"
 })
 
-local Tab = Window:CreateTab("Player")
+local Tab = Window:CreateTab("Main")
 
 local player = game.Players.LocalPlayer
 
--- SAFE GET CHARACTER
-local function getChar()
+-- SAFE CHARACTER ACCESS FUNCTION
+local function getHumanoid()
    local char = player.Character or player.CharacterAdded:Wait()
-   local hum = char:FindFirstChildOfClass("Humanoid")
-   local root = char:FindFirstChild("HumanoidRootPart")
-   return char, hum, root
+   return char:FindFirstChildOfClass("Humanoid")
 end
 
+local function getRoot()
+   local char = player.Character or player.CharacterAdded:Wait()
+   return char:FindFirstChild("HumanoidRootPart")
+end
+
+-- =====================
 -- WALK SPEED
+-- =====================
 Tab:CreateInput({
    Name = "WalkSpeed",
-   Callback = function(v)
-      local _, hum = getChar()
-      if hum then hum.WalkSpeed = tonumber(v) end
-   end,
-})
-
--- JUMP POWER
-Tab:CreateInput({
-   Name = "JumpPower",
-   Callback = function(v)
-      local _, hum = getChar()
+   Callback = function(Value)
+      local hum = getHumanoid()
       if hum then
-         hum.UseJumpPower = true
-         hum.JumpPower = tonumber(v)
+         hum.WalkSpeed = tonumber(Value) or 16
       end
    end,
 })
 
--- NOCLIP (SAFE LOOP)
+-- =====================
+-- JUMP POWER
+-- =====================
+Tab:CreateInput({
+   Name = "JumpPower",
+   Callback = function(Value)
+      local hum = getHumanoid()
+      if hum then
+         hum.UseJumpPower = true
+         hum.JumpPower = tonumber(Value) or 50
+      end
+   end,
+})
+
+-- =====================
+-- NOCLIP (SEPARATE THREAD)
+-- =====================
 local noclip = false
 
 Tab:CreateToggle({
    Name = "NoClip",
-   Callback = function(v)
-      noclip = v
+   Callback = function(Value)
+      noclip = Value
    end,
 })
 
 task.spawn(function()
    while true do
       task.wait()
+
       if noclip then
          local char = player.Character
          if char then
-            for _,p in pairs(char:GetDescendants()) do
-               if p:IsA("BasePart") then
-                  p.CanCollide = false
+            for _,v in pairs(char:GetDescendants()) do
+               if v:IsA("BasePart") then
+                  v.CanCollide = false
                end
             end
          end
@@ -63,28 +75,31 @@ task.spawn(function()
    end
 end)
 
--- FLY (SAFE)
+-- =====================
+-- FLY (ISOLATED)
+-- =====================
 local flying = false
 local speed = 50
 
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
-local bodyVel, bodyGyro
+local bodyVel
+local bodyGyro
 
 Tab:CreateInput({
    Name = "Fly Speed",
-   Callback = function(v)
-      speed = tonumber(v) or 50
+   Callback = function(Value)
+      speed = tonumber(Value) or 50
    end,
 })
 
 Tab:CreateToggle({
    Name = "Fly",
-   Callback = function(v)
-      flying = v
+   Callback = function(Value)
+      flying = Value
 
-      local _,_,root = getChar()
+      local root = getRoot()
       if not root then return end
 
       if flying then
@@ -105,7 +120,7 @@ Tab:CreateToggle({
 RunService.RenderStepped:Connect(function()
    if not flying then return end
 
-   local _,_,root = getChar()
+   local root = getRoot()
    if not root then return end
 
    local cam = workspace.CurrentCamera
