@@ -3,50 +3,58 @@ local Library = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Library:CreateWindow({
    Name = "Cem Hub",
    LoadingTitle = "Cem Hub",
-   LoadingSubtitle = "Simple Version"
+   LoadingSubtitle = "Stable Version"
 })
 
-local Tab = Window:CreateTab("Player")
+local Tab = Window:CreateTab("Main")
 
 local player = game.Players.LocalPlayer
 
+-- SAFE CHARACTER FUNCTIONS
+local function getHumanoid()
+   local char = player.Character or player.CharacterAdded:Wait()
+   return char:FindFirstChildOfClass("Humanoid")
+end
+
+local function getRoot()
+   local char = player.Character or player.CharacterAdded:Wait()
+   return char:FindFirstChild("HumanoidRootPart")
+end
+
+-- =====================
 -- WALK SPEED
+-- =====================
 Tab:CreateInput({
    Name = "WalkSpeed",
-   PlaceholderText = "Enter speed",
    Callback = function(Value)
-      local char = player.Character
-      if char then
-         local hum = char:FindFirstChildOfClass("Humanoid")
-         if hum then
-            hum.WalkSpeed = tonumber(Value) or 16
-         end
+      local hum = getHumanoid()
+      if hum then
+         hum.WalkSpeed = tonumber(Value) or 16
       end
    end,
 })
 
+-- =====================
 -- JUMP POWER
+-- =====================
 Tab:CreateInput({
    Name = "JumpPower",
-   PlaceholderText = "Enter jump power",
    Callback = function(Value)
-      local char = player.Character
-      if char then
-         local hum = char:FindFirstChildOfClass("Humanoid")
-         if hum then
-            hum.UseJumpPower = true
-            hum.JumpPower = tonumber(Value) or 50
-         end
+      local hum = getHumanoid()
+      if hum then
+         hum.UseJumpPower = true
+         hum.JumpPower = tonumber(Value) or 50
       end
    end,
 })
 
--- NOCLIP TOGGLE
+-- =====================
+-- NOCLIP
+-- =====================
 local noclip = false
 
 Tab:CreateToggle({
    Name = "NoClip",
-   CurrentValue = false,
    Callback = function(Value)
       noclip = Value
    end,
@@ -65,46 +73,51 @@ game:GetService("RunService").Stepped:Connect(function()
    end
 end)
 
--- FLY SPEED
+-- =====================
+-- FLY (FIXED VERSION)
+-- =====================
+local flying = false
 local flySpeed = 50
+
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local bodyVel
+local bodyGyro
 
 Tab:CreateInput({
    Name = "Fly Speed",
-   PlaceholderText = "Enter fly speed",
    Callback = function(Value)
       flySpeed = tonumber(Value) or 50
    end,
 })
 
--- FLY TOGGLE
-local flying = false
-local bodyVel
-local bodyGyro
-
-local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-
 Tab:CreateToggle({
    Name = "Fly",
-   CurrentValue = false,
    Callback = function(Value)
       flying = Value
 
       local char = player.Character
       if not char then return end
 
+      local hum = char:FindFirstChildOfClass("Humanoid")
       local root = char:FindFirstChild("HumanoidRootPart")
-      if not root then return end
+      if not hum or not root then return end
 
       if flying then
+         hum.PlatformStand = true
+
          bodyVel = Instance.new("BodyVelocity")
          bodyVel.MaxForce = Vector3.new(1e9,1e9,1e9)
          bodyVel.Parent = root
 
          bodyGyro = Instance.new("BodyGyro")
          bodyGyro.MaxTorque = Vector3.new(1e9,1e9,1e9)
+         bodyGyro.CFrame = root.CFrame
          bodyGyro.Parent = root
       else
+         hum.PlatformStand = false
+
          if bodyVel then bodyVel:Destroy() end
          if bodyGyro then bodyGyro:Destroy() end
       end
