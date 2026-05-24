@@ -4,59 +4,83 @@ local Library = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Library:CreateWindow({
    Name = "Cem Hub",
    LoadingTitle = "Cem Hub",
-   LoadingSubtitle = "Player Tools"
+   LoadingSubtitle = "Stable Version"
 })
 
 local Tab = Window:CreateTab("Main")
 
 local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local hrp = character:WaitForChild("HumanoidRootPart")
 
+-- =====================
+-- CHARACTER HANDLING FIX
+-- =====================
+local character
+local humanoid
+local hrp
+
+local function setupChar(char)
+   character = char
+   humanoid = char:WaitForChild("Humanoid")
+   hrp = char:WaitForChild("HumanoidRootPart")
+end
+
+setupChar(player.Character or player.CharacterAdded:Wait())
+player.CharacterAdded:Connect(setupChar)
+
+-- =====================
 -- WALK SPEED
+-- =====================
 Tab:CreateInput({
    Name = "WalkSpeed",
-   PlaceholderText = "Enter Speed",
    Callback = function(Value)
-      humanoid.WalkSpeed = tonumber(Value) or 16
+      if humanoid then
+         humanoid.WalkSpeed = tonumber(Value) or 16
+      end
    end,
 })
 
--- JUMP POWER
+-- =====================
+-- JUMP POWER FIX
+-- =====================
 Tab:CreateInput({
    Name = "JumpPower",
-   PlaceholderText = "Enter JumpPower",
    Callback = function(Value)
-      humanoid.JumpPower = tonumber(Value) or 50
+      if humanoid then
+         humanoid.UseJumpPower = true
+         humanoid.JumpPower = tonumber(Value) or 50
+      end
    end,
 })
 
--- NOCLIP
+-- =====================
+-- NOCLIP STABLE
+-- =====================
 local noclip = false
 
 Tab:CreateToggle({
    Name = "NoClip",
-   CurrentValue = false,
    Callback = function(Value)
       noclip = Value
    end,
 })
 
 game:GetService("RunService").Stepped:Connect(function()
-   if noclip and player.Character then
-      for _, part in pairs(player.Character:GetDescendants()) do
-         if part:IsA("BasePart") then
-            part.CanCollide = false
+   if noclip and character then
+      for _, v in pairs(character:GetDescendants()) do
+         if v:IsA("BasePart") then
+            v.CanCollide = false
          end
       end
    end
 end)
 
--- FLY
+-- =====================
+-- FLY FIXED (NO BUG)
+-- =====================
 local flying = false
 local flySpeed = 50
-local bodyVelocity
+
+local bodyVel
 local bodyGyro
 
 local UIS = game:GetService("UserInputService")
@@ -64,7 +88,6 @@ local RunService = game:GetService("RunService")
 
 Tab:CreateInput({
    Name = "Fly Speed",
-   PlaceholderText = "Enter Fly Speed",
    Callback = function(Value)
       flySpeed = tonumber(Value) or 50
    end,
@@ -72,28 +95,28 @@ Tab:CreateInput({
 
 Tab:CreateToggle({
    Name = "Fly",
-   CurrentValue = false,
    Callback = function(Value)
       flying = Value
 
-      if flying then
-         bodyVelocity = Instance.new("BodyVelocity")
-         bodyVelocity.MaxForce = Vector3.new(1e9,1e9,1e9)
-         bodyVelocity.Parent = hrp
+      if flying and hrp then
+         bodyVel = Instance.new("BodyVelocity")
+         bodyVel.MaxForce = Vector3.new(1e9,1e9,1e9)
+         bodyVel.Velocity = Vector3.zero
+         bodyVel.Parent = hrp
 
          bodyGyro = Instance.new("BodyGyro")
          bodyGyro.MaxTorque = Vector3.new(1e9,1e9,1e9)
          bodyGyro.CFrame = hrp.CFrame
          bodyGyro.Parent = hrp
       else
-         if bodyVelocity then bodyVelocity:Destroy() end
+         if bodyVel then bodyVel:Destroy() end
          if bodyGyro then bodyGyro:Destroy() end
       end
    end,
 })
 
 RunService.RenderStepped:Connect(function()
-   if flying then
+   if flying and hrp then
       local cam = workspace.CurrentCamera
       local move = Vector3.zero
 
@@ -104,12 +127,7 @@ RunService.RenderStepped:Connect(function()
       if UIS:IsKeyDown(Enum.KeyCode.Space) then move += Vector3.new(0,1,0) end
       if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then move -= Vector3.new(0,1,0) end
 
-      if bodyVelocity then
-         bodyVelocity.Velocity = move * flySpeed
-      end
-
-      if bodyGyro then
-         bodyGyro.CFrame = cam.CFrame
-      end
+      bodyVel.Velocity = move * flySpeed
+      bodyGyro.CFrame = cam.CFrame
    end
 end)
