@@ -1,3 +1,4 @@
+print("SCRIPT RUNNING")
 local Library = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Library:CreateWindow({
