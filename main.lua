@@ -1,105 +1,99 @@
 local Library = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Library:CreateWindow({
-   Name = "Cem Hub"
+   Name = "Cem Hub",
+   LoadingTitle = "Cem Hub",
+   LoadingSubtitle = "Simple Version"
 })
 
-local Tab = Window:CreateTab("Main")
+local Tab = Window:CreateTab("Player")
 
 local player = game.Players.LocalPlayer
 
--- SAFE CHARACTER ACCESS FUNCTION
-local function getHumanoid()
-   local char = player.Character or player.CharacterAdded:Wait()
-   return char:FindFirstChildOfClass("Humanoid")
-end
-
-local function getRoot()
-   local char = player.Character or player.CharacterAdded:Wait()
-   return char:FindFirstChild("HumanoidRootPart")
-end
-
--- =====================
 -- WALK SPEED
--- =====================
 Tab:CreateInput({
    Name = "WalkSpeed",
+   PlaceholderText = "Enter speed",
    Callback = function(Value)
-      local hum = getHumanoid()
-      if hum then
-         hum.WalkSpeed = tonumber(Value) or 16
+      local char = player.Character
+      if char then
+         local hum = char:FindFirstChildOfClass("Humanoid")
+         if hum then
+            hum.WalkSpeed = tonumber(Value) or 16
+         end
       end
    end,
 })
 
--- =====================
 -- JUMP POWER
--- =====================
 Tab:CreateInput({
    Name = "JumpPower",
+   PlaceholderText = "Enter jump power",
    Callback = function(Value)
-      local hum = getHumanoid()
-      if hum then
-         hum.UseJumpPower = true
-         hum.JumpPower = tonumber(Value) or 50
+      local char = player.Character
+      if char then
+         local hum = char:FindFirstChildOfClass("Humanoid")
+         if hum then
+            hum.UseJumpPower = true
+            hum.JumpPower = tonumber(Value) or 50
+         end
       end
    end,
 })
 
--- =====================
--- NOCLIP (SEPARATE THREAD)
--- =====================
+-- NOCLIP TOGGLE
 local noclip = false
 
 Tab:CreateToggle({
    Name = "NoClip",
+   CurrentValue = false,
    Callback = function(Value)
       noclip = Value
    end,
 })
 
-task.spawn(function()
-   while true do
-      task.wait()
-
-      if noclip then
-         local char = player.Character
-         if char then
-            for _,v in pairs(char:GetDescendants()) do
-               if v:IsA("BasePart") then
-                  v.CanCollide = false
-               end
+game:GetService("RunService").Stepped:Connect(function()
+   if noclip then
+      local char = player.Character
+      if char then
+         for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+               v.CanCollide = false
             end
          end
       end
    end
 end)
 
--- =====================
--- FLY (ISOLATED)
--- =====================
+-- FLY SPEED
+local flySpeed = 50
+
+Tab:CreateInput({
+   Name = "Fly Speed",
+   PlaceholderText = "Enter fly speed",
+   Callback = function(Value)
+      flySpeed = tonumber(Value) or 50
+   end,
+})
+
+-- FLY TOGGLE
 local flying = false
-local speed = 50
+local bodyVel
+local bodyGyro
 
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
-local bodyVel
-local bodyGyro
-
-Tab:CreateInput({
-   Name = "Fly Speed",
-   Callback = function(Value)
-      speed = tonumber(Value) or 50
-   end,
-})
-
 Tab:CreateToggle({
    Name = "Fly",
+   CurrentValue = false,
    Callback = function(Value)
       flying = Value
 
-      local root = getRoot()
+      local char = player.Character
+      if not char then return end
+
+      local root = char:FindFirstChild("HumanoidRootPart")
       if not root then return end
 
       if flying then
@@ -120,7 +114,10 @@ Tab:CreateToggle({
 RunService.RenderStepped:Connect(function()
    if not flying then return end
 
-   local root = getRoot()
+   local char = player.Character
+   if not char then return end
+
+   local root = char:FindFirstChild("HumanoidRootPart")
    if not root then return end
 
    local cam = workspace.CurrentCamera
@@ -134,7 +131,7 @@ RunService.RenderStepped:Connect(function()
    if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then move -= Vector3.new(0,1,0) end
 
    if bodyVel then
-      bodyVel.Velocity = move * speed
+      bodyVel.Velocity = move * flySpeed
    end
 
    if bodyGyro then
